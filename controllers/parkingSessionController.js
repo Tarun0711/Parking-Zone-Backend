@@ -7,9 +7,9 @@ const { ApiError } = require('../utils/ApiError');
 const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs').promises;
+const {uploadImageToCloudinary}=require('../utils/ImageUploader')
 
-
-
+// Create a new parking session
 exports.createParkingSession = async (req, res, next) => {
     try {
         const { vehicleId, parkingSlotId } = req.body;
@@ -41,22 +41,26 @@ exports.createParkingSession = async (req, res, next) => {
         // Generate QR code 
         parkingSession.qrCode = parkingSession.generateQRCode();
 
-        // Generate QR code as a buffer
-        const qrCodeBuffer = await QRCode.toBuffer(parkingSession.qrCode);
+        // Save the session
+        await parkingSession.save();
 
-        // Upload QR code to external API
-        const formData = new FormData();
-        formData.append('file', qrCodeBuffer, `qr-${parkingSession._id}.png`);
+        // Create uploads directory if it doesn't exist
+        const uploadsDir = path.join(__dirname, '../uploads/qrcodes');
+        await fs.mkdir(uploadsDir, { recursive: true });
 
-        const uploadResponse = await axios.post('https://api.propertywallah.org/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        // Generate and save QR code image
+        const qrCodeFileName = `${parkingSession._id}.png`;
+        const qrCodeFilePath = path.join(uploadsDir, qrCodeFileName);
+        await QRCode.toFile(qrCodeFilePath, parkingSession.qrCode);
 
-        if (!uploadResponse.data || !uploadResponse.data.url) {
-            throw new ApiError(500, 'Failed to upload QR code');
-        }
+        // Get the base URL from environment variable or config
+        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const qrCodeUrl = `${baseUrl}/uploads/qrcodes/${qrCodeFileName}`;
 
-        const qrCodeUrl = uploadResponse.data.url;
+        // const qrCodeUpload = await uploadImageToCloudinary(qrCodeBuffer, 'Qrcodes');
+        // if (!qrCodeUpload || !qrCodeUpload.secure_url) {
+        //     throw new ApiError(500, 'Failed to upload QR code to Cloudinary');
+        // }
 
         // Get vehicle owner's email
         const vehicleWithOwner = await Vehicle.findById(vehicleId).populate('owner');
@@ -100,6 +104,97 @@ exports.createParkingSession = async (req, res, next) => {
         next(error);
     }
 };
+
+// exports.createParkingSession = async (req, res, next) => {
+//     try {
+//         const { vehicleId, parkingSlotId } = req.body;
+
+//         // Validate vehicle
+//         const vehicle = await Vehicle.findById(vehicleId);
+//         if (!vehicle) {
+//             throw new ApiError(404, 'Vehicle not found');
+//         }
+
+//         // Validate parking slot
+//         const parkingSlot = await ParkingSlot.findById(parkingSlotId);
+//         if (!parkingSlot) {
+//             throw new ApiError(404, 'Parking slot not found');
+//         }
+
+//         // Check if parking slot is available
+//         if (parkingSlot.status !== 'available') {
+//             throw new ApiError(400, 'Parking slot is not available');
+//         }
+
+//         // Create parking session
+//         const parkingSession = new ParkingSession({
+//             vehicle: vehicleId,
+//             parkingSlot: parkingSlotId,
+//             issuedBy: req.user._id
+//         });
+
+//         // Generate QR code as binary buffer
+//         const qrCodeBuffer = await QRCode.toBuffer(parkingSession._id.toString());
+//         console.log(qrCodeBuffer)
+//         // Define upload directory
+//         const uploadsDir = path.join(__dirname, '../uploads/qrcodes');
+//         await fs.promises.mkdir(uploadsDir, { recursive: true });
+
+//         // Save the binary QR code image as a file
+//         const qrCodeFileName = `${parkingSession._id}.png`;
+//         const qrCodeFilePath = path.join(uploadsDir, qrCodeFileName);
+//         await fs.promises.writeFile(qrCodeFilePath, qrCodeBuffer);
+
+//         // Store QR code binary in the database
+//         parkingSession.qrCodeBinary = qrCodeBuffer;
+//         await parkingSession.save();
+
+//         // Get the base URL from environment variable or config
+//         const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+//         const qrCodeUrl = `${baseUrl}/uploads/qrcodes/${qrCodeFileName}`;
+
+//         // Get vehicle owner's email
+//         const vehicleWithOwner = await Vehicle.findById(vehicleId).populate('owner');
+//         if (!vehicleWithOwner || !vehicleWithOwner.owner || !vehicleWithOwner.owner.email) {
+//             throw new ApiError(400, 'Vehicle owner information not found');
+//         }
+
+//         // Send email with QR code
+//         const emailHtml = `
+//             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+//                 <h2>Parking Session Details</h2>
+//                 <p>Your parking session has been created successfully.</p>
+//                 <p><strong>Session ID:</strong> ${parkingSession._id}</p>
+//                 <p><strong>Vehicle:</strong> ${vehicle.licensePlate}</p>
+//                 <p><strong>Parking Slot:</strong> ${parkingSlot.slotNumber}</p>
+//                 <p><strong>Entry Time:</strong> ${parkingSession.entryTime}</p>
+//                 <div style="text-align: center; margin: 20px 0;">
+//                     <p><strong>Your Parking QR Code:</strong></p>
+//                     <img src="${qrCodeUrl}" alt="Parking QR Code" style="max-width: 200px;"/>
+//                 </div>
+//                 <p>Please show this QR code when exiting the parking area.</p>
+//                 <p>Note: This QR code is unique to your parking session. Do not share it with others.</p>
+//             </div>
+//         `;
+
+//         await emailService.sendEmail(
+//             vehicleWithOwner.owner.email, 
+//             'Parking Session QR Code',
+//             emailHtml
+//         );
+//         logger.info(`Email sent to ${vehicleWithOwner.owner.email}`);
+
+//         logger.info(`New parking session created for vehicle ${vehicleId} at slot ${parkingSlotId}`);
+        
+//         res.status(201).json({
+//             success: true,
+//             data: parkingSession
+//         });
+//     } catch (error) {
+//         logger.error(`Error creating parking session: ${error.message}`);
+//         next(error);
+//     }
+// };
 
 
 // Get all parking sessions

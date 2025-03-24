@@ -8,7 +8,8 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs').promises;
 
-// Create a new parking session
+
+
 exports.createParkingSession = async (req, res, next) => {
     try {
         const { vehicleId, parkingSlotId } = req.body;
@@ -40,21 +41,22 @@ exports.createParkingSession = async (req, res, next) => {
         // Generate QR code 
         parkingSession.qrCode = parkingSession.generateQRCode();
 
-        // Save the session
-        await parkingSession.save();
+        // Generate QR code as a buffer
+        const qrCodeBuffer = await QRCode.toBuffer(parkingSession.qrCode);
 
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = path.join(__dirname, '../uploads/qrcodes');
-        await fs.mkdir(uploadsDir, { recursive: true });
+        // Upload QR code to external API
+        const formData = new FormData();
+        formData.append('file', qrCodeBuffer, `qr-${parkingSession._id}.png`);
 
-        // Generate and save QR code image
-        const qrCodeFileName = `qr-${parkingSession._id}.png`;
-        const qrCodeFilePath = path.join(uploadsDir, qrCodeFileName);
-        await QRCode.toFile(qrCodeFilePath, parkingSession.qrCode);
+        const uploadResponse = await axios.post('https://api.propertywallah.org/uploads', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
 
-        // Get the base URL from environment variable or config
-        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-        const qrCodeUrl = `${baseUrl}/uploads/qrcodes/${qrCodeFileName}`;
+        if (!uploadResponse.data || !uploadResponse.data.url) {
+            throw new ApiError(500, 'Failed to upload QR code');
+        }
+
+        const qrCodeUrl = uploadResponse.data.url;
 
         // Get vehicle owner's email
         const vehicleWithOwner = await Vehicle.findById(vehicleId).populate('owner');
@@ -98,6 +100,7 @@ exports.createParkingSession = async (req, res, next) => {
         next(error);
     }
 };
+
 
 // Get all parking sessions
 exports.getAllParkingSessions = async (req, res, next) => {

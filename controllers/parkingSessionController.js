@@ -304,7 +304,7 @@ exports.getQRCode = async (req, res, next) => {
 // Verify QR code and handle entry/exit
 exports.verifyQRCode = async (req, res, next) => {
     try {
-        const { qrCode, action } = req.body;
+        const { qrCode } = req.body;
 
         // Find parking session by QR code
         const session = await ParkingSession.findOne({ qrCode })
@@ -320,22 +320,13 @@ exports.verifyQRCode = async (req, res, next) => {
             throw new ApiError(400, 'Parking session is not active');
         }
 
-        // Handle entry verification
-        if (action === 'entry') {
-            if (session.entryTime) {
-                throw new ApiError(400, 'Entry time already recorded for this session');
-            }
+        // Determine action automatically
+        if (!session.entryTime) {
+            // Mark as entry
             session.entryTime = new Date();
             logger.info(`Entry recorded for parking session ${session._id}`);
-        }
-        // Handle exit verification
-        else if (action === 'exit') {
-            if (!session.entryTime) {
-                throw new ApiError(400, 'Entry time not recorded for this session');
-            }
-            if (session.exitTime) {
-                throw new ApiError(400, 'Exit time already recorded for this session');
-            }
+        } else if (!session.exitTime) {
+            // Mark as exit
             session.exitTime = new Date();
             session.amount = await session.calculateParkingFee();
             session.status = 'completed';
@@ -366,13 +357,20 @@ exports.verifyQRCode = async (req, res, next) => {
                 'Parking Session Completed',
                 emailHtml
             );
+        } else {
+            // Session is already completed
+            return res.status(200).json({
+                success: false,
+                message: 'This parking session has already been completed.',
+                data: session
+            });
         }
 
         await session.save();
 
         res.status(200).json({
             success: true,
-            message: `${action === 'entry' ? 'Entry' : 'Exit'} verified successfully`,
+            message: session.exitTime ? 'Exit recorded successfully' : 'Entry recorded successfully',
             data: session
         });
     } catch (error) {
@@ -380,5 +378,6 @@ exports.verifyQRCode = async (req, res, next) => {
         next(error);
     }
 };
+
 
 module.exports = exports; 

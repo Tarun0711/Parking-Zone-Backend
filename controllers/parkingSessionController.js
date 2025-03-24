@@ -48,7 +48,7 @@ exports.createParkingSession = async (req, res, next) => {
         const formData = new FormData();
         formData.append('file', qrCodeBuffer, `qr-${parkingSession._id}.png`);
 
-        const uploadResponse = await axios.post('https://api.propertywallah.org/uploads', formData, {
+        const uploadResponse = await axios.post('https://api.propertywallah.org/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 

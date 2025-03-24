@@ -92,7 +92,6 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(morgan(process.env.LOG_FORMAT || 'combined'));
 
 // Serve static files
-app.use('/uploads/qrcodes', express.static(path.join(__dirname, 'uploads/qrcodes')));
 
 // Routes
 app.use('/health', healthRoutes);
@@ -103,6 +102,15 @@ app.use('/api/blocks', blockRoutes);
 app.use('/api/parking-slots', parkingSlotRoutes);
 app.use('/api/parking-sessions', parkingSessionRoutes);
 app.use('/api/vehicles', vehicleRoutes);
+
+app.use('/uploads/qrcodes', (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS'); // Allow only necessary methods
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
+app.use('/uploads/qrcodes', express.static(path.join(__dirname, 'uploads/qrcodes')));
 
 // Error handling middleware
 app.use(errorHandler);

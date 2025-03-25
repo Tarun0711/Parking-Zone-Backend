@@ -17,6 +17,10 @@ const parkingSessionSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    qrCodeUrl: {
+        type: String,
+        required: true
+    },
     bookingTime: {
         type: Date,
         default: Date.now

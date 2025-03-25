@@ -38,9 +38,8 @@ const vehicleRoutes = require('./routes/vehicleRoutes');
 const { connectDB } = require('./config/database');
 const fileUpload = require("express-fileupload");
 const { cloudnairyconnect } = require("./utils/Cloudnary");
+
 // Initialize Express app
-
-
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -54,17 +53,14 @@ const io = socketIo(server, {
 // Initialize Socket Service
 const socketService = new SocketService(io);
 
+// Configure file upload
+app.use(fileUpload({
+    useTempFiles: true,
+    tempFileDir: "/tmp",
+}));
 
-
-// app.use(
-//     fileUpload({
-//       useTempFiles: true,
-//       tempFileDir: "/tmp",
-//     })
-//   );
-  
-//   cloudnairyconnect();
-  
+// Initialize Cloudinary
+cloudnairyconnect();
 
 // Make socketService available to routes and controllers
 app.locals.socketService = socketService;
@@ -116,8 +112,6 @@ app.use(express.json({ limit: '10kb' })); // Limit body size
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(morgan(process.env.LOG_FORMAT || 'combined'));
 
-// Serve static files
-
 // Routes
 app.use('/health', healthRoutes);
 app.use('/api/auth', authRoutes);
@@ -144,7 +138,7 @@ app.use('/api/vehicles', vehicleRoutes);
 // app.use(express.static(path.join(__dirname, "client/build")));
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/uploads/qrcodes", express.static(path.join(__dirname, "uploads/qrcodes")));
-
+require('dotenv').config();
 
 // Error handling middleware
 app.use(errorHandler);

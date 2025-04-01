@@ -123,7 +123,7 @@ exports.deleteParkingRate = async (req, res) => {
             });
         }
 
-        await parkingRate.remove();
+        await parkingRate.deleteOne();
         logger.info(`Parking rate ${req.params.id} deleted by admin ${req.user._id}`);
 
         res.status(200).json({

@@ -1,15 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const redisService = require('../services/redisService');
 
 router.get('/', async (req, res) => {
     try {
         // Check MongoDB connection
         const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-         
-        // Check Redis connection
-        const redisStatus = await redisService.client.ping() === 'PONG' ? 'connected' : 'disconnected';
         
         // Get memory usage
         const memoryUsage = process.memoryUsage();
@@ -18,8 +14,7 @@ router.get('/', async (req, res) => {
             status: 'healthy',
             timestamp: new Date().toISOString(),
             services: {
-                mongodb: mongoStatus,
-                redis: redisStatus
+                mongodb: mongoStatus
             },
             system: {
                 uptime: process.uptime(),

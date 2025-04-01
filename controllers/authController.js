@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const logger = require('../config/logger');
 const emailService = require('../services/emailService');
-const redisService = require('../services/redisService');
 const NotificationService = require('../services/notificationService');
 
 // Generate JWT Token
@@ -34,12 +33,8 @@ const register = async (req, res) => {
         const verificationToken = user.generateEmailVerificationToken();
         await user.save();
 
-        // Generate OTP
-        const otp = emailService.generateOTP();
-        await redisService.setOTP(email, otp);
-
         // Send verification email with OTP
-        await emailService.sendOTPVerification(email, otp);
+        await emailService.sendOTPVerification(email, user.otp);
         await emailService.sendWelcomeEmail(email, name);
 
         // Initialize notification service with socket service from app.locals
@@ -70,12 +65,6 @@ const verifyEmail = async (req, res) => {
     try {
         const { email, otp } = req.body;
 
-        // Get stored OTP from Redis
-        const storedOTP = await redisService.getOTP(email);
-        if (!storedOTP || storedOTP !== otp) {
-            return res.status(400).json({ error: 'Invalid or expired OTP' });
-        }
-
         // Find user
         const user = await User.findOne({ email });
         if (!user) {
@@ -87,9 +76,6 @@ const verifyEmail = async (req, res) => {
         user.emailVerificationToken = undefined;
         user.emailVerificationExpires = undefined;
         await user.save();
-
-        // Delete OTP from Redis
-        await redisService.deleteOTP(email);
 
         // Generate token
         const token = generateToken(user._id);
@@ -115,13 +101,6 @@ const resendVerificationOTP = async (req, res) => {
     try {
         const { email } = req.body;
 
-        // Check rate limit
-        const rateLimitKey = `resend_otp:${email}`;
-        const attempts = await redisService.incrementRateLimit(rateLimitKey, 3600, 3); // 3 attempts per hour
-        if (attempts > 3) {
-            return res.status(429).json({ error: 'Too many attempts. Please try again later.' });
-        }
-
         // Find user
         const user = await User.findOne({ email });
         if (!user) {
@@ -134,7 +113,9 @@ const resendVerificationOTP = async (req, res) => {
 
         // Generate new OTP
         const otp = emailService.generateOTP();
-        await redisService.setOTP(email, otp);
+        user.otp = otp;
+        user.otpExpires = Date.now() + 600000; // 10 minutes
+        await user.save();
 
         // Send verification email
         await emailService.sendOTPVerification(email, otp);
@@ -150,13 +131,6 @@ const resendVerificationOTP = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        // Check rate limit
-        const rateLimitKey = `login:${email}`;
-        const attempts = await redisService.incrementRateLimit(rateLimitKey, 3600, 5); // 5 attempts per hour
-        if (attempts > 5) {
-            return res.status(429).json({ error: 'Too many login attempts. Please try again later.' });
-        }
 
         // Find user and include password field
         const user = await User.findOne({ email }).select('+password');
@@ -196,14 +170,7 @@ const login = async (req, res) => {
         // Generate token
         const token = generateToken(user._id);
 
-        // Store session in Redis
-        await redisService.setUserSession(user._id, {
-            token,
-            lastLogin: user.lastLogin
-        });
-
         res.json({
-            message: 'Login successful',
             token,
             user: {
                 id: user._id,
@@ -214,7 +181,7 @@ const login = async (req, res) => {
         });
     } catch (error) {
         logger.error('Login error:', error);
-        res.status(500).json({ error: 'Error logging in' });
+        res.status(500).json({ error: 'Error during login' });
     }
 };
 
@@ -222,13 +189,6 @@ const login = async (req, res) => {
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-
-        // Check rate limit
-        const rateLimitKey = `forgot_password:${email}`;
-        const attempts = await redisService.incrementRateLimit(rateLimitKey, 3600, 3); // 3 attempts per hour
-        if (attempts > 3) {
-            return res.status(429).json({ error: 'Too many attempts. Please try again later.' });
-        }
 
         const user = await User.findOne({ email });
 
@@ -275,9 +235,6 @@ const resetPassword = async (req, res) => {
         user.passwordResetToken = undefined;
         user.passwordResetExpires = undefined;
         await user.save();
-
-        // Invalidate all sessions
-        await redisService.deleteUserSession(user._id);
 
         res.json({ message: 'Password has been reset successfully' });
     } catch (error) {

@@ -85,29 +85,7 @@ app.use((req, res, next) => {
   );
   next();
 });
-// Rate limiting
-// const limiter = rateLimit({
-//     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, 
-//     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100000, 
-//     message: 'Too many requests from this IP, please try again later.'
-// });
 
-// // Apply rate limiting to all routes
-// app.use('/api/', limiter); 
-
-// Data sanitization against NoSQL query injection
-// app.use(mongoSanitize());
-
-// // Data sanitization against XSS
-// app.use(xss());
-
-// // Prevent parameter pollution
-// app.use(hpp({
-//     whitelist: ['email', 'name'] // Parameters that can be duplicated
-// }));
-
-// Middleware
-// app.use(compression());
 app.use(express.json({ limit: '10kb' })); // Limit body size
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(morgan(process.env.LOG_FORMAT || 'combined'));
@@ -122,21 +100,7 @@ app.use('/api/parking-slots', parkingSlotRoutes);
 app.use('/api/parking-sessions', parkingSessionRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 
-// app.use(
-//     "/uploads/qrcodes",
-//     express.static("uploads/qrcodes", {
-//       setHeaders: (res) => {
-//         res.setHeader("Access-Control-Allow-Origin", "*");
-//       },
-//     })
-//   );
-// helmet({
-//     crossOriginResourcePolicy: false,
-//   })
-  
-// // Serve static files from the React app
-// app.use(express.static(path.join(__dirname, "client/build")));
-// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use("/uploads/qrcodes", express.static(path.join(__dirname, "uploads/qrcodes")));
 require('dotenv').config();
 
@@ -146,14 +110,7 @@ app.use(errorHandler);
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
 
-// const ensureUploadsDirectory = async () => {
-//     const uploadsDir = path.join(__dirname, 'uploads/qrcodes');
-//     try {
-//         await fs.access(uploadsDir);
-//     } catch (error) {
-//         await fs.mkdir(uploadsDir, { recursive: true });
-//     }
-// };
+
 
 const startServer = async () => {
     try {
@@ -170,4 +127,4 @@ const startServer = async () => {
     }
 };
 
-startServer();  
+startServer();   

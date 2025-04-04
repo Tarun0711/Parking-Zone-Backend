@@ -32,9 +32,11 @@ const register = async (req, res) => {
         // Generate email verification token
         const verificationToken = user.generateEmailVerificationToken();
         await user.save();
+        const otp = emailService.generateOTP();
+        user.otp = otp;
 
         // Send verification email with OTP
-        await emailService.sendOTPVerification(email, user.otp);
+        await emailService.sendOTPVerification(email, otp);
         await emailService.sendWelcomeEmail(email, name);
 
         // Initialize notification service with socket service from app.locals
@@ -140,11 +142,11 @@ const login = async (req, res) => {
         }
 
         // Check if account is locked
-        if (user.lockUntil && user.lockUntil > Date.now()) {
-            return res.status(401).json({ 
-                error: 'Account is locked. Please try again later.' 
-            });
-        }
+        // if (user.lockUntil && user.lockUntil > Date.now()) {
+        //     return res.status(401).json({ 
+        //         error: 'Account is locked. Please try again later.' 
+        //     });
+        // }
 
         // Verify password
         const isMatch = await user.comparePassword(password);

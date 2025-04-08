@@ -23,6 +23,20 @@ const blockSchema = new mongoose.Schema({
         required: [true, 'Total number of slots is required'],
         min: [3, 'Block must have at least three slots to accommodate all rate types']
     },
+    vehicleTypes: {
+        car: {
+            type: Number,
+            default: 0
+        },
+        truck: {
+            type: Number,
+            default: 0
+        },
+        bike: {
+            type: Number,
+            default: 0
+        }
+    },
     isActive: {
         type: Boolean,
         default: true
@@ -51,36 +65,63 @@ blockSchema.pre('save', async function(next) {
             
             // Create VVIP slots (first third)
             for (let i = 0; i < vvipSlots; i++) {
+                // Determine vehicle type based on distribution
+                let vehicleType = 'car';
+                if (i < this.vehicleTypes.truck) {
+                    vehicleType = 'truck';
+                } else if (i < this.vehicleTypes.truck + this.vehicleTypes.bike) {
+                    vehicleType = 'bike';
+                }
+                
                 slots.push({
                     slotNumber: `${this.blockName}-${slotCounter}`,
                     block: this._id,
                     floor: this.floor,
                     rateType: 'VVIP',
-                    type: 'vip' // Using VIP slot type for VVIP rate
+                    type: 'vip', // Using VIP slot type for VVIP rate
+                    vehicleType: vehicleType
                 });
                 slotCounter++;
             }
             
             // Create VIP slots (second third)
             for (let i = 0; i < vipSlots; i++) {
+                // Determine vehicle type based on distribution
+                let vehicleType = 'car';
+                if (i < this.vehicleTypes.truck) {
+                    vehicleType = 'truck';
+                } else if (i < this.vehicleTypes.truck + this.vehicleTypes.bike) {
+                    vehicleType = 'bike';
+                }
+                
                 slots.push({
                     slotNumber: `${this.blockName}-${slotCounter}`,
                     block: this._id,
                     floor: this.floor,
                     rateType: 'VIP',
-                    type: 'vip'
+                    type: 'vip',
+                    vehicleType: vehicleType
                 });
                 slotCounter++;
             }
             
             // Create NORMAL slots (final third)
             for (let i = 0; i < normalSlots; i++) {
+                // Determine vehicle type based on distribution
+                let vehicleType = 'car';
+                if (i < this.vehicleTypes.truck) {
+                    vehicleType = 'truck';
+                } else if (i < this.vehicleTypes.truck + this.vehicleTypes.bike) {
+                    vehicleType = 'bike';
+                }
+                
                 slots.push({
                     slotNumber: `${this.blockName}-${slotCounter}`,
                     block: this._id,
                     floor: this.floor,
                     rateType: 'NORMAL',
-                    type: 'standard'
+                    type: 'standard',
+                    vehicleType: vehicleType
                 });
                 slotCounter++;
             }

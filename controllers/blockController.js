@@ -12,8 +12,22 @@ exports.createBlock = async (req, res, next) => {
             throw new ApiError(400, `Block with name "${req.body.blockName}" already exists`);
         }
 
+        // Process vehicle types
+        const vehicleTypes = {
+            car: req.body.vehicleTypes?.car || 0,
+            truck: req.body.vehicleTypes?.truck || 0,
+            bike: req.body.vehicleTypes?.bike || 0
+        };
+
+        // Validate that the sum of vehicle types doesn't exceed total slots
+        const totalVehicleTypes = vehicleTypes.car + vehicleTypes.truck + vehicleTypes.bike;
+        if (totalVehicleTypes > req.body.totalSlots) {
+            throw new ApiError(400, 'Sum of vehicle types cannot exceed total slots');
+        }
+
         const blockData = {
             ...req.body,
+            vehicleTypes,
             createdBy: req.user._id
         };
 
@@ -103,6 +117,23 @@ exports.updateBlock = async (req, res, next) => {
         // Prevent updating totalSlots if parking slots are already created
         if (req.body.totalSlots && block.totalSlots !== req.body.totalSlots) {
             throw new ApiError(400, 'Cannot update total slots after block creation');
+        }
+
+        // Process vehicle types if provided
+        if (req.body.vehicleTypes) {
+            const vehicleTypes = {
+                car: req.body.vehicleTypes.car || block.vehicleTypes.car,
+                truck: req.body.vehicleTypes.truck || block.vehicleTypes.truck,
+                bike: req.body.vehicleTypes.bike || block.vehicleTypes.bike
+            };
+
+            // Validate that the sum of vehicle types doesn't exceed total slots
+            const totalVehicleTypes = vehicleTypes.car + vehicleTypes.truck + vehicleTypes.bike;
+            if (totalVehicleTypes > block.totalSlots) {
+                throw new ApiError(400, 'Sum of vehicle types cannot exceed total slots');
+            }
+
+            req.body.vehicleTypes = vehicleTypes;
         }
 
         const updatedBlock = await Block.findByIdAndUpdate(

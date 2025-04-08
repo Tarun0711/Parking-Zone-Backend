@@ -21,6 +21,11 @@ const parkingSlotSchema = new mongoose.Schema({
         enum: ['standard', 'handicapped', 'vip', 'electric'],
         default: 'standard'
     },
+    vehicleType: {
+        type: String,
+        enum: ['car', 'truck', 'bike'],
+        default: 'car'
+    },
     rateType: {
         type: String,
         enum: ['VVIP', 'VIP', 'NORMAL'],
@@ -51,6 +56,7 @@ const parkingSlotSchema = new mongoose.Schema({
 parkingSlotSchema.index({ block: 1, slotNumber: 1 });
 parkingSlotSchema.index({ status: 1 });
 parkingSlotSchema.index({ rateType: 1 });
+parkingSlotSchema.index({ vehicleType: 1 });
 
 const ParkingSlot = mongoose.model('ParkingSlot', parkingSlotSchema);
 module.exports = ParkingSlot; 

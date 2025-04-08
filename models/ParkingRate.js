@@ -8,7 +8,7 @@ const parkingRateSchema = new mongoose.Schema({
     },
     vehicleType: {
         type: String,
-        enum: ['car', 'motorcycle', 'truck'],
+        enum: ['car', 'bike', 'truck'], // Changed 'motorcycle' to 'bike' to match frontend
         required: true,
         default: 'car'
     },
@@ -39,4 +39,4 @@ parkingRateSchema.index({ type: 1, isActive: 1 });
 parkingRateSchema.index({ vehicleType: 1, type: 1 });
 
 const ParkingRate = mongoose.model('ParkingRate', parkingRateSchema);
-module.exports = ParkingRate; 
+module.exports = ParkingRate;

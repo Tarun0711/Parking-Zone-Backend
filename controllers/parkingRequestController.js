@@ -199,6 +199,10 @@ exports.approveParkingRequest = async (req, res, next) => {
         parkingSession.qrCodeUrl = uploadResult.secure_url;
         await parkingSession.save();
 
+        // Update parking request with the parking session reference
+        parkingRequest.parkingSession = parkingSession._id;
+        await parkingRequest.save();
+
         // Update parking slot status to occupied
         await ParkingSlot.findByIdAndUpdate(parkingRequest.parkingSlot._id, {
             status: 'occupied',
@@ -209,18 +213,40 @@ exports.approveParkingRequest = async (req, res, next) => {
         // Send email notification to vehicle owner
         const vehicleOwner = await User.findById(parkingRequest.vehicle.owner);
         if (vehicleOwner && vehicleOwner.email) {
+            const emailTemplate = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>Parking Session Details</h2>
+                    <p>Your parking session has been created successfully.</p>
+                    <p><strong>Session ID:</strong> ${parkingSession._id}</p>
+                    <p><strong>Vehicle:</strong> ${parkingRequest.vehicle.licensePlate}</p>
+                    <p><strong>Parking Slot:</strong> ${parkingRequest.parkingSlot.slotNumber}</p>
+                    <p><strong>Entry Time:</strong> ${parkingSession.entryTime}</p>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <p><strong>Your Parking QR Code:</strong></p>
+                        <img src="${parkingSession.qrCodeUrl}" alt="Parking QR Code" style="max-width: 200px;"/>
+                    </div>
+                    <p>Please show this QR code when exiting the parking area.</p>
+                    <p>Note: This QR code is unique to your parking session. Do not share it with others.</p>
+                </div>
+            `;
+            
             await emailService.sendEmail(
                 vehicleOwner.email,
                 'Parking Request Approved',
-                `Your parking request for slot ${parkingRequest.parkingSlot.slotNumber} has been approved.`
+                emailTemplate,
+                true // Set to true to indicate this is HTML content
             );
         }
+        
 
         logger.info(`Parking request ${requestId} approved and slot marked as occupied`);
         
         res.status(200).json({
             success: true,
-            data: parkingRequest
+            data: {
+                parkingRequest,
+                parkingSession
+            }
         });
     } catch (error) {
         logger.error(`Error approving parking request: ${error.message}`);
@@ -283,4 +309,4 @@ exports.rejectParkingRequest = async (req, res, next) => {
     }
 };
 
-module.exports = exports; 
+module.exports = exports;

@@ -6,6 +6,12 @@ const parkingRateSchema = new mongoose.Schema({
         enum: ['VVIP', 'VIP', 'NORMAL'],
         required: true
     },
+    vehicleType: {
+        type: String,
+        enum: ['car', 'motorcycle', 'truck'],
+        required: true,
+        default: 'car'
+    },
     hourlyRate: {
         type: Number,
         required: true,
@@ -30,6 +36,7 @@ const parkingRateSchema = new mongoose.Schema({
 
 // Index for efficient querying
 parkingRateSchema.index({ type: 1, isActive: 1 });
+parkingRateSchema.index({ vehicleType: 1, type: 1 });
 
 const ParkingRate = mongoose.model('ParkingRate', parkingRateSchema);
 module.exports = ParkingRate; 

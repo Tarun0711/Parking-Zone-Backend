@@ -26,7 +26,7 @@ const parkingSlotSchema = new mongoose.Schema({
         enum: ['VVIP', 'VIP', 'NORMAL'],
         default: 'NORMAL'
     },
-    status: {
+    status: { 
         type: String,
         enum: ['available', 'occupied', 'reserved', 'maintenance'],
         default: 'available'

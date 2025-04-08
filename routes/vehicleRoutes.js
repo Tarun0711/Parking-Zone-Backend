@@ -19,4 +19,7 @@ router.route('/:id')
 router.get('/owner/:ownerId', auth, vehicleController.getVehiclesByOwner);
 router.get('/regular', auth, vehicleController.getRegularVehicles);
 
+// Admin route to get all vehicles with pagination and filtering
+router.get('/admin/all', auth, isAdmin, vehicleController.getAllVehiclesAdmin);
+
 module.exports = router; 

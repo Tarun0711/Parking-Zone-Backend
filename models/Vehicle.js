@@ -6,7 +6,13 @@ const vehicleSchema = new mongoose.Schema({
         required: [true, 'License plate is required'],
         unique: true,
         trim: true,
-        uppercase: true
+        uppercase: true,
+        validate: {
+            validator: function(v) {
+                return /^[A-Z]{2}\s\d{2}\s[A-Z]\s\d{4}$/.test(v);
+            },
+            message: 'License plate must follow the format: XX 88 X 1224'
+        }
     },
     vehicleType: {
         type: String,
@@ -15,12 +21,12 @@ const vehicleSchema = new mongoose.Schema({
     },
     owner: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'User', 
         required: true
     },
     make: {
         type: String,
-        required: [true, 'Vehicle make is required'],
+        required: [true, 'Vehicle make is required'], 
         trim: true
     },
     model: {

@@ -4,10 +4,11 @@ const logger = require('../config/logger');
 // Create a new parking rate
 exports.createParkingRate = async (req, res) => {
     try {
-        const { type, hourlyRate, description } = req.body;
+        const { type, vehicleType, hourlyRate, description } = req.body;
 
         const parkingRate = new ParkingRate({
             type,
+            vehicleType: vehicleType || 'car', // Default to car if not specified
             hourlyRate,
             description,
             updatedBy: req.user._id
@@ -78,7 +79,7 @@ exports.getParkingRate = async (req, res) => {
 // Update parking rate
 exports.updateParkingRate = async (req, res) => {
     try {
-        const { type, hourlyRate, description, isActive } = req.body;
+        const { type, vehicleType, hourlyRate, description, isActive } = req.body;
 
         const parkingRate = await ParkingRate.findById(req.params.id);
 
@@ -90,6 +91,7 @@ exports.updateParkingRate = async (req, res) => {
         }
 
         parkingRate.type = type || parkingRate.type;
+        parkingRate.vehicleType = vehicleType || parkingRate.vehicleType;
         parkingRate.hourlyRate = hourlyRate || parkingRate.hourlyRate;
         parkingRate.description = description || parkingRate.description;
         parkingRate.isActive = isActive !== undefined ? isActive : parkingRate.isActive;

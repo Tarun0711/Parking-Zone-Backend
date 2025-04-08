@@ -25,6 +25,7 @@ require('./models/ParkingSlot');
 require('./models/ParkingRate');
 require('./models/ParkingSession');
 require('./models/Notification');
+require('./models/ParkingRequest');
 
 // Import routes
 const healthRoutes = require('./routes/health');
@@ -34,6 +35,7 @@ const parkingRateRoutes = require('./routes/parkingRates');
 const blockRoutes = require('./routes/block');
 const parkingSlotRoutes = require('./routes/parkingSlotRoutes');
 const parkingSessionRoutes = require('./routes/parkingSession');
+const parkingRequestRoutes = require('./routes/parkingRequest');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const { connectDB } = require('./config/database');
 const fileUpload = require("express-fileupload");
@@ -98,6 +100,7 @@ app.use('/api/parking-rates', parkingRateRoutes);
 app.use('/api/blocks', blockRoutes);
 app.use('/api/parking-slots', parkingSlotRoutes);
 app.use('/api/parking-sessions', parkingSessionRoutes);
+app.use('/api/parking-requests', parkingRequestRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 
 
@@ -115,7 +118,7 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
     try {
         // await ensureUploadsDirectory();
-        await connectDB();
+        await connectDB(); 
         
         server.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`);

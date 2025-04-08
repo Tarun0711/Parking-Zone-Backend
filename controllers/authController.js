@@ -141,12 +141,7 @@ const login = async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Check if account is locked
-        // if (user.lockUntil && user.lockUntil > Date.now()) {
-        //     return res.status(401).json({ 
-        //         error: 'Account is locked. Please try again later.' 
-        //     });
-        // }
+        
 
         // Verify password
         const isMatch = await user.comparePassword(password);
